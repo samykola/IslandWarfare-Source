@@ -1,0 +1,78 @@
+name: IslandWarfare
+version: '1.0.0'
+main: com.islandwarfare.IslandWarfare
+api-version: '1.21'
+author: IslandWarfare Team
+description: Clan-based island survival and raid war game mode.
+softdepend: [WorldEdit, FastAsyncWorldEdit, Vault]
+load: POSTWORLD
+
+commands:
+  island:
+    description: Island management command.
+    usage: /island [info|home|sethome|upgrade]
+    permission: islandwarfare.island
+    permission-message: You do not have permission to use this command.
+  clan:
+    description: Clan management command.
+    usage: /clan [create|invite|join|leave|kick|promote|demote|info|members|permissions|top]
+    permission: islandwarfare.clan
+  raid:
+    description: Raid / war command.
+    usage: /raid [attack|info]
+    permission: islandwarfare.raid
+  shop:
+    description: Open the resource shop.
+    usage: /shop
+    permission: islandwarfare.shop
+  territory:
+    description: View and manage territory control.
+    usage: /territory [list|info]
+    permission: islandwarfare.territory
+  research:
+    description: Clan research / technology tree.
+    usage: /research [unlock <id>]
+    permission: islandwarfare.research
+  iw:
+    description: IslandWarfare admin command.
+    usage: /iw admin <...>
+    permission: islandwarfare.admin
+    aliases: [islandwarfare]
+
+permissions:
+  islandwarfare.island:
+    description: Access to /island commands.
+    default: true
+  islandwarfare.clan:
+    description: Access to /clan commands.
+    default: true
+  islandwarfare.raid:
+    description: Access to /raid commands.
+    default: true
+  islandwarfare.shop:
+    description: Access to /shop command.
+    default: true
+  islandwarfare.territory:
+    description: Access to /territory command.
+    default: true
+  islandwarfare.research:
+    description: Access to /research command.
+    default: true
+  islandwarfare.admin:
+    description: Access to all /iw admin commands.
+    default: op
+  islandwarfare.bypass.protection:
+    description: Bypass all island protection checks.
+    default: op
+  islandwarfare.*:
+    description: Grants all IslandWarfare permissions.
+    default: op
+    children:
+      islandwarfare.island: true
+      islandwarfare.clan: true
+      islandwarfare.raid: true
+      islandwarfare.shop: true
+      islandwarfare.territory: true
+      islandwarfare.research: true
+      islandwarfare.admin: true
+      islandwarfare.bypass.protection: true

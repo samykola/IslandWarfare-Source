@@ -1,0 +1,462 @@
+# =====================================================
+#  IslandWarfare - Main Configuration
+# =====================================================
+
+world:
+  name: "islandwarfare_world"
+  spawn:
+    x: 0
+    y: 100
+    z: 0
+    yaw: 0
+    pitch: 0
+
+# Storage backend: YAML (file based, zero external dependency) or SQLITE
+storage:
+  type: YAML
+
+# -----------------------------------------------------
+# Island settings
+# -----------------------------------------------------
+island:
+  # Distance between island "slots" on the grid used when auto-placing new islands.
+  grid-spacing: 250
+  # Vertical Y level islands are pasted at.
+  paste-y: 64
+  # Minimum gap (in blocks) that must exist between two island bounding boxes.
+  min-gap: 32
+  home:
+    teleport-cooldown-seconds: 10
+  # Each level is not just "bigger" - it unlocks real, code-enforced perks:
+  #  max-members         -> hard cap enforced by ClanCommand#join
+  #  max-territory       -> hard cap enforced by TerritoryManager#claim
+  #  research-tier       -> highest-tier research this island level may unlock (ResearchManager)
+  #  sell-bonus-percent  -> % bonus applied on top of shop sell price (EconomyService)
+  #  home-warps          -> number of extra named island warps (beyond the main home) (IslandHomeService)
+  levels:
+    1:
+      size: 20
+      schematic: "island-level-1.schem"
+      upgrade-cost: 0
+      max-members: 4
+      max-territory: 1
+      research-tier: 1
+      sell-bonus-percent: 0
+      home-warps: 0
+    2:
+      size: 35
+      schematic: "island-level-2.schem"
+      upgrade-cost: 5000
+      max-members: 6
+      max-territory: 2
+      research-tier: 2
+      sell-bonus-percent: 5
+      home-warps: 1
+    3:
+      size: 50
+      schematic: "island-level-3.schem"
+      upgrade-cost: 20000
+      max-members: 8
+      max-territory: 3
+      research-tier: 3
+      sell-bonus-percent: 10
+      home-warps: 2
+    4:
+      size: 75
+      schematic: "island-level-4.schem"
+      upgrade-cost: 60000
+      max-members: 12
+      max-territory: 4
+      research-tier: 4
+      sell-bonus-percent: 15
+      home-warps: 3
+    5:
+      size: 100
+      schematic: "island-level-5.schem"
+      upgrade-cost: 150000
+      max-members: 20
+      max-territory: 6
+      research-tier: 5
+      sell-bonus-percent: 25
+      home-warps: 5
+
+# -----------------------------------------------------
+# Bridge settings
+# -----------------------------------------------------
+bridge:
+  destructible: false
+  destructible-during-war-only: true
+  allowed-clans: [] # empty = everyone allowed to walk on bridges
+
+# -----------------------------------------------------
+# Territory: neutral, capturable zones between islands.
+# Zones are created by admins (/iw admin territory create <radius>) at the
+# admin's current location, then any clan can contest/capture them.
+# -----------------------------------------------------
+territory:
+  enabled: true
+  default-radius: 25
+  capture-seconds: 180
+  # A zone only progresses while the capturing clan has a numeric presence
+  # advantage inside the zone radius over every other clan present.
+  contest-requires-majority: true
+  # Progress lost per second while nobody of the current owner/capturer is present (zone "cools down").
+  decay-per-second: 0.5
+  # Clan power granted per currently-held territory zone is controlled by
+  # power.weights.territory below (ClanPowerService is the single source
+  # of truth for power math - see that class for the full formula).
+
+# -----------------------------------------------------
+# Resource Islands: neutral zones (created like territory, but flagged as
+# resource zones) containing limited resource nodes that respawn on a timer.
+# Node types below are matched against the block broken; anything else in
+# a resource zone falls back to normal "no island" world rules.
+# -----------------------------------------------------
+resource-islands:
+  enabled: true
+  nodes:
+    MINING:
+      block: DIAMOND_ORE
+      respawn-seconds: 600
+      yield-money: 40
+      yield-item: DIAMOND
+      yield-amount: 1
+    FOREST:
+      block: OAK_LOG
+      respawn-seconds: 120
+      yield-money: 2
+      yield-item: OAK_LOG
+      yield-amount: 4
+    FARM:
+      block: WHEAT
+      respawn-seconds: 180
+      yield-money: 3
+      yield-item: WHEAT
+      yield-amount: 2
+    RARE:
+      block: ANCIENT_DEBRIS
+      respawn-seconds: 1800
+      yield-money: 200
+      yield-item: ANCIENT_DEBRIS
+      yield-amount: 1
+
+# -----------------------------------------------------
+# Clan settings
+# -----------------------------------------------------
+clan:
+  min-name-length: 3
+  max-name-length: 16
+  min-tag-length: 2
+  max-tag-length: 5
+  max-officers: 3
+  starting-balance: 500
+  default-permissions:
+    MEMBER: [INTERACT, PICKUP]
+    OFFICER: [BUILD, BREAK, CONTAINER, PICKUP, USE, INTERACT]
+    LEADER: [BUILD, BREAK, CONTAINER, PICKUP, USE, INTERACT]
+
+# -----------------------------------------------------
+# Protection
+# -----------------------------------------------------
+protection:
+  enabled: true
+  protect-outside-island-radius-buffer: 3
+
+# -----------------------------------------------------
+# Raid / War system
+# -----------------------------------------------------
+raid:
+  enabled: true
+  # Phase durations
+  preparation-hours: 72
+  war-hours: 12
+  cooldown-hours: 24
+  # Minimum clan power difference allowed to attack (0 = disabled)
+  max-power-difference-percent: 0
+  # Radius (blocks) around the enemy island center where raid rules (break/loot/combat) apply.
+  raid-zone-radius: 999
+  # How long a single "/raid attack" window against one island stays active, in minutes.
+  attack-duration-minutes: 15
+  rules:
+    break-allowed: true
+    loot-allowed: true
+    combat-enabled: true
+  loot:
+    items: true
+    money: true
+    percentage: 50
+  combat:
+    friendly-fire: false
+  respawn:
+    mode: ISLAND_HOME # ISLAND_HOME or WORLD_SPAWN
+
+  # -----------------------------------------------------
+  # Real capture objective: Attack -> Infiltration -> Objective -> Capture
+  # Timer -> Defense -> Win/Loss -> Loot. The "objective" is a capture point
+  # centered on the defender's island home. The attacker must be the only
+  # clan present within capture-radius, uninterrupted, for capture-seconds
+  # (minus any defense reduction) before the raid is won and loot is paid out.
+  # If a defender enters the radius, progress freezes and decays back down.
+  # -----------------------------------------------------
+  capture:
+    radius: 12
+    capture-seconds: 240
+    progress-decay-per-second: 1.0
+    # Base-defense: real, non-pay-to-win. At raid start the plugin counts
+    # how many of the configured defense-material blocks exist within
+    # capture radius (built by the defending clan) and extends the timer.
+    defense:
+      material: OBSIDIAN
+      seconds-added-per-block: 1.5
+      max-added-seconds: 300
+
+# -----------------------------------------------------
+# Economy / Shop
+# -----------------------------------------------------
+economy:
+  shop:
+    DIAMOND: 500
+    IRON_INGOT: 100
+    GOLD_INGOT: 150
+    EMERALD: 400
+    COAL: 20
+    REDSTONE: 25
+    LAPIS_LAZULI: 30
+    NETHERITE_SCRAP: 2000
+  # Dynamic market: selling a material repeatedly pushes its price down
+  # (supply pressure); the price recovers gradually over time. This is
+  # tracked server-wide (not per-clan) so it can't be reset by re-joining
+  # a clan, and it's clamped between floor/ceiling so it can't be crashed
+  # to zero or inflated indefinitely.
+  market:
+    enabled: true
+    price-drop-percent-per-sale-unit: 0.05
+    recovery-percent-per-minute: 1.0
+    floor-percent-of-base: 40
+    ceiling-percent-of-base: 150
+
+# -----------------------------------------------------
+# Clan Power: fully config-driven weighted formula. See Clan#calculatePower.
+# -----------------------------------------------------
+power:
+  weights:
+    island-level: 100
+    active-member: 15
+    raid-win: 25
+    raid-loss: -10
+    territory: 15
+    research-tier: 40
+    balance-divisor: 100 # power += balance / this value
+  # A member counts as "active" for power purposes if they were online within this many hours.
+  active-member-window-hours: 168
+
+# -----------------------------------------------------
+# Research / Technology tree. Unlocked with clan money + resources.
+# effect-type: MINING_BONUS, STORAGE_BONUS, ECONOMY_BONUS, DEFENSE_BONUS
+# effect-value: percentage bonus applied by the relevant system.
+# tier: cannot be researched unless the clan's island level >= tier
+#       (see island.levels.<n>.research-tier).
+# -----------------------------------------------------
+research:
+  enabled: true
+  techs:
+    mining_1:
+      name: "Efficient Mining I"
+      tier: 1
+      cost-money: 2000
+      cost-items: { IRON_INGOT: 32 }
+      requires: []
+      effect-type: MINING_BONUS
+      effect-value: 10
+    storage_1:
+      name: "Reinforced Storage I"
+      tier: 1
+      cost-money: 1500
+      cost-items: { COBBLESTONE: 64 }
+      requires: []
+      effect-type: STORAGE_BONUS
+      effect-value: 10
+    economy_1:
+      name: "Trade Routes I"
+      tier: 2
+      cost-money: 4000
+      cost-items: { EMERALD: 16 }
+      requires: [ "mining_1" ]
+      effect-type: ECONOMY_BONUS
+      effect-value: 10
+    defense_1:
+      name: "Fortification I"
+      tier: 2
+      cost-money: 4000
+      cost-items: { OBSIDIAN: 16 }
+      requires: [ "storage_1" ]
+      effect-type: DEFENSE_BONUS
+      effect-value: 15
+    mining_2:
+      name: "Efficient Mining II"
+      tier: 3
+      cost-money: 10000
+      cost-items: { DIAMOND: 8 }
+      requires: [ "mining_1" ]
+      effect-type: MINING_BONUS
+      effect-value: 15
+    defense_2:
+      name: "Fortification II"
+      tier: 4
+      cost-money: 20000
+      cost-items: { OBSIDIAN: 64 }
+      requires: [ "defense_1" ]
+      effect-type: DEFENSE_BONUS
+      effect-value: 25
+
+# -----------------------------------------------------
+# World Events: periodic, at a fixed set of admin-defined locations
+# (falls back to world spawn if none are set). Rewards are claimed
+# server-side on interaction so they cannot be duplicated.
+# -----------------------------------------------------
+events:
+  enabled: true
+  interval-minutes: 45
+  warning-seconds: 60
+  # Fixed candidate locations "x,z" (world = world.name, y = island.paste-y + 5).
+  # Leave empty to always use world spawn.
+  locations: []
+  # Radius around the strike point a player must be inside when a
+  # METEOR/BOSS event resolves to claim the reward for their clan.
+  claim-radius: 20
+  types:
+    SUPPLY_DROP:
+      weight: 40
+      loot-money: 1500
+      loot-items: { DIAMOND: 3, GOLDEN_APPLE: 2 }
+    METEOR:
+      weight: 25
+      loot-money: 800
+      loot-items: { NETHERITE_SCRAP: 1, IRON_INGOT: 16 }
+    RESOURCE_RUSH:
+      weight: 25
+      duration-minutes: 10
+      yield-multiplier: 3
+    BOSS:
+      weight: 10
+      boss-type: WITHER_SKELETON
+      boss-health: 200
+      loot-money: 5000
+      loot-items: { NETHERITE_SCRAP: 3, EMERALD: 32 }
+
+# -----------------------------------------------------
+# Scout / Intel
+# -----------------------------------------------------
+scout:
+  enabled: true
+  cost-money: 250
+  cooldown-seconds: 300
+
+# -----------------------------------------------------
+# Season / Ranking
+# -----------------------------------------------------
+season:
+  enabled: true
+  length-days: 30
+  auto-reset: true
+  # What resets when a new season starts (island level/members/research NEVER reset).
+  reset-raid-stats: true
+  reset-territory: true
+
+# -----------------------------------------------------
+# GUI titles
+# -----------------------------------------------------
+gui:
+  island-title: "&2&lIsland Menu"
+  clan-title: "&3&lClan Menu"
+  clan-members-title: "&3&lClan Members"
+  clan-permissions-title: "&3&lMember Permissions"
+  shop-title: "&6&lIsland Shop"
+  raid-title: "&4&lRaid Menu"
+  territory-title: "&2&lTerritory Control"
+  research-title: "&5&lResearch"
+  intel-title: "&9&lClan Intel"
+  leaderboard-title: "&6&lLeaderboards"
+
+# -----------------------------------------------------
+# Scoreboard
+# -----------------------------------------------------
+scoreboard:
+  enabled: true
+  update-interval-ticks: 20
+  title: "&a&lIsland Warfare"
+  lines:
+    - ""
+    - "&7Clan: &f%clan_name%"
+    - "&7Island Level: &f%island_level%"
+    - "&7Balance: &f$%clan_balance%"
+    - ""
+    - "&7Phase: %phase_color%%phase%"
+    - "&7Time: &f%phase_time%"
+    - ""
+    - "&7Power: &f%clan_power%"
+
+# -----------------------------------------------------
+# Messages
+# -----------------------------------------------------
+messages:
+  prefix: "&8[&aIslandWarfare&8] &r"
+  no-permission: "&cYou do not have permission to do that."
+  player-only: "&cOnly players can use this command."
+  no-clan: "&cYou are not in a clan yet. Use /clan create <name> <tag>."
+  already-in-clan: "&cYou are already in a clan."
+  clan-created: "&aClan &f%clan% &acreated successfully! Your island has been generated."
+  clan-name-taken: "&cThat clan name is already taken."
+  clan-tag-taken: "&cThat clan tag is already taken."
+  clan-invalid-name: "&cInvalid clan name length."
+  invite-sent: "&aInvite sent to &f%player%&a."
+  invite-received: "&aYou have been invited to join &f%clan%&a. Use /clan join %clan% to accept."
+  no-pending-invite: "&cYou have no pending invite from that clan."
+  joined-clan: "&aYou joined &f%clan%&a!"
+  left-clan: "&aYou left your clan."
+  not-clan-leader: "&cOnly the clan leader can do that."
+  not-clan-officer: "&cYou must be an officer or leader to do that."
+  kicked-from-clan: "&cYou were kicked from your clan."
+  player-kicked: "&aKicked &f%player% &afrom the clan."
+  promoted: "&a%player% was promoted to Officer."
+  demoted: "&a%player% was demoted to Member."
+  island-protected: "&cThis island is protected. You do not have permission to do that here."
+  no-island: "&cYour clan does not have an island yet."
+  teleporting: "&aTeleporting to island in 3 seconds..."
+  teleport-cooldown: "&cYou must wait %seconds%s before teleporting again."
+  upgrade-success: "&aIsland upgraded to level %level%!"
+  upgrade-max-level: "&cYour island is already at the maximum level."
+  upgrade-not-enough-money: "&cYour clan does not have enough money. Needed: $%cost%"
+  raid-not-active: "&cThere is no active war phase right now."
+  raid-started: "&c&lWAR PHASE has begun! Raiding is now active."
+  raid-ended: "&a&lWar phase has ended. Islands are protected again."
+  raid-cannot-attack-own: "&cYou cannot raid your own clan."
+  raid-power-too-different: "&cYour clan is too powerful compared to that clan - pick a more evenly matched target."
+  raid-attack-started: "&c%clan% is raiding your island!"
+  economy-not-enough: "&cYou do not have enough money."
+  sold-items: "&aSold items for $%amount%."
+  bridge-protected: "&cThis bridge cannot be destroyed right now."
+  territory-claimed: "&aYour clan has captured &f%territory%&a!"
+  territory-lost: "&cYour clan lost control of &f%territory%&c!"
+  territory-contested: "&eTerritory &f%territory% &eis being contested!"
+  territory-max-reached: "&cYour clan already controls the maximum number of territories for your island level."
+  territory-not-enough-presence: "&cYou need a majority presence in this zone to capture it."
+  raid-capture-progress: "&cCapturing... &f%percent%%"
+  raid-capture-interrupted: "&eDefenders are contesting the capture!"
+  raid-capture-complete: "&c&lThe enemy has captured your base!"
+  raid-defended: "&a&lYour clan successfully defended the island!"
+  research-unlocked: "&aResearch &f%research% &acompleted!"
+  research-already-unlocked: "&cYour clan already has that research."
+  research-tier-locked: "&cYour island level is too low to unlock this research."
+  research-missing-requirement: "&cYou must research the prerequisite technology first."
+  research-not-enough-money: "&cNot enough clan balance for this research."
+  research-not-enough-items: "&cMissing required items in your inventory: %items%"
+  scout-cooldown: "&cYou must wait %seconds%s before scouting again."
+  scout-not-enough-money: "&cScouting costs $%cost%."
+  event-supply-drop: "&6&lA Supply Drop is incoming! &eRace to the marked location!"
+  event-meteor: "&c&lA Meteor is about to strike! &eLoot will scatter at the impact site!"
+  event-resource-rush: "&a&lResource Rush has begun! &eAll resource nodes yield %multiplier%x for %minutes% minutes!"
+  event-boss: "&4&lA powerful enemy has appeared! &eDefeat it for a massive reward!"
+  event-ended: "&7The world event has ended."
+  season-started: "&a&lA new season has begun!"
+  season-ended: "&6&lThe season has ended! Check /clan top for final rankings."
